@@ -99,6 +99,34 @@ SaaS berbasis web yang **otomatisasi** seluruh workflow Document Control dengan:
 | F-402 | Drawing Revision Detection | Deteksi perubahan voltage/technical requirement | Nice to Have |
 | F-403 | Similar Document Finding | Cari dokumen serupa untuk reference | Nice to Have |
 
+### 3.6 Core Module: Hybrid Workflow (Manual + AI)
+
+#### Fitur:
+|| ID | Fitur | Deskripsi | Priority |
+||----|-------|-----------|----------|
+|| F-501 | File Upload & Selection | Pilih file manual dari folder untuk document yang tidak bisa di-generate otomatis | Must Have |
+|| F-502 | Template Positioning | Hasil document ditempatkan di posisi yang ditentukan oleh template | Must Have |
+|| F-503 | Ready Document Library | Ambil document yang sudah matang langsung dari folder/file yang ada | Must Have |
+|| F-504 | Manual Form Input | Form untuk mengisi data manual dengan opsi generate otomatis | Must Have |
+|| F-505 | Hybrid Generation Mode | Kombinasi AI-assisted + manual input | Nice to Have |
+
+#### Workflow:
+```
+OPTION A: AI Generated (Default)
+User Form Input → ML Processing → Auto Generate Document
+
+OPTION B: Manual Selection
+User chooses file from folder → Place at template position → Generate
+
+OPTION C: Ready Document
+User selects from library → Add to transmittal → No generation needed
+
+OPTION D: Hybrid (Hybrid Form)
+- Some fields auto-filled by ML
+- Some fields manually edited
+- Generate final document
+```
+
 ---
 
 ## 4. Non-Functional Requirements
