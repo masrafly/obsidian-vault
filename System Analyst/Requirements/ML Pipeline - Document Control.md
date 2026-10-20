@@ -40,7 +40,7 @@
 │  ├── Revised versions (PDF)                                         │
 │  └── Transmittal records                                            │
 │                                                                     │
-│  Model Types:                                                         │
+│  Model Types:                                                       │
 │  ├── Document Structure Prediction (Transformer)                   │
 │  ├── Variable Extraction (NLP)                                       │
 │  ├── Drawing Analysis (Computer Vision)                            │
@@ -79,6 +79,28 @@
 │  ├── Transmittal PDF                                               │
 │  └── Downloadable Package (ZIP)                                    │
 └─────────────────────────────────────────────────────────────────────┘
+```
+
+## Hybrid Workflow Options
+
+### Option A: AI Generated (Default)
+```
+User Form Input → ML Processing → Auto Generate Document
+```
+
+### Option B: Manual File Selection
+```
+User chooses file from folder → Place at template position → Generate
+```
+
+### Option C: Ready Document Library
+```
+User selects from existing library → Add to transmittal → No generation
+```
+
+### Option D: Hybrid Form Input
+```
+Form fields auto-filled by ML → Manual edit allowed → Generate final
 ```
 
 ## Detailed Pipeline Components
@@ -296,8 +318,6 @@ Content:
 ├── Installation Drawing Reference
 └── Technical Data Sheet
 ```
-
----
 
 ## Implementation Checklist
 
