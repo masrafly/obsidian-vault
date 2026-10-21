@@ -329,8 +329,9 @@ Week 5-8: Notification system & dashboard
 ---
 
 ### Lampiran: Daftar Isi yang Perlu Dibuat
-1. [ ] Template Variable Inventory
-2. [ ] Sample Template Documents
+1. [x] Template Variable Inventory → `Training Data/PO_KurangLebih_Template.docx`, `VDRL_Template.xlsx`
+2. [x] Sample Template Documents → `Training Data/*.docx`, `Training Data/*.json`
 3. [ ] User Interface Mockup
 4. [ ] Database Schema Design
-5. [ ] ML Training Dataset List
+5. [x] ML Training Dataset List → `Training Data/` folder ready
+6. [ ] Validation Report → `Training Data/Validation Report.md`
