@@ -1,7 +1,7 @@
 # Agent Session Log - team-leader
 
 ## 📚 Session Context
-**Timestamp:** 2026-10-20_20-50-07
+**Timestamp:** 2026-10-21_20-50-31
 **Profile:** team-leader
 **Obsidian Read:** Yes
 
@@ -11,6 +11,7 @@
 Related sessions across profiles:
 
 ## 📝 Previous Sessions (Linked)
+- [[|Previous Session]]
 - [[|Previous Session]]
 - [[|Previous Session]]
 
