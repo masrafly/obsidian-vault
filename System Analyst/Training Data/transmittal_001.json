@@ -1,0 +1,32 @@
+{
+  "transmittal_date": "20/10/2024",
+  "transmittal_no": "TRA-2024-10-20-01",
+  "reference_no": "PO-2024-001",
+  "client_name": "PT Maju Bersama Sejahtera",
+  "client_address": "Jl. Merdeka No. 123, Jakarta 12345",
+  "client_contact": "Budi Santoso - Manager Procurement",
+  "company_name": "PT Teknologi Elektra",
+  "company_address": "Jl. Industri No. 78, Bekasi 17230",
+  "project_manager": "John Doe",
+  "transmittal_subject": "Purchase Order and Drawing Documents",
+  "project_name": "ACB 1000A Installation Project",
+  "document_type": "Drawing, Specification",
+  "items": [
+    {
+      "item_no": "1",
+      "doc_no": "PO-2024-001",
+      "rev": "A",
+      "doc_title": "Purchase Order Kurang Lebih",
+      "doc_type": "PO",
+      "quantity": 1
+    },
+    {
+      "item_no": "2",
+      "doc_no": "ELK-2024-015",
+      "rev": "A",
+      "doc_title": "Drawing ACB-1000A Motor Control",
+      "doc_type": "Drawing",
+      "quantity": 3
+    }
+  ]
+}

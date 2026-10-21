@@ -1,0 +1,45 @@
+{
+  "client": {
+    "name": "PT Maju Bersama Sejahtera",
+    "address": "Jl. Merdeka No. 123, Jakarta 12345",
+    "contact": "Budi Santoso",
+    "email": "budi.santoso@majubersama.co.id",
+    "npwp": "01234567890123456789",
+    "fax": "+62-21-5555-1234"
+  },
+  "vendor": {
+    "name": "PT Elektra Lintas",
+    "address": "Jl. Industri No. 78, Bekasi 17230",
+    "attention": "Haryoto Putra <haryoto@elektralintas.co.id>",
+    "fax": "+62-21-5555-9012"
+  },
+  "project": {
+    "subject": "Pembelian ACB 1000A 415V",
+    "no": "PO-2024-001",
+    "date": "15/10/2024",
+    "ref": "SPB-2024-001"
+  },
+  "items": [
+    {
+      "item": "1",
+      "quantity": 2,
+      "unit": "Buah",
+      "description": "ACB Mitsubishi 1000A 415V 3Ph",
+      "unit_price": 15500000,
+      "amount": 31000000
+    },
+    {
+      "item": "2",
+      "quantity": 1,
+      "unit": "Set",
+      "description": "Panel Penghubung ACB",
+      "unit_price": 5000000,
+      "amount": 5000000
+    }
+  ],
+  "totals": {
+    "subtotal": 36000000,
+    "tax": 0,
+    "grand_total": 36000000
+  }
+}

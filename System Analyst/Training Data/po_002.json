@@ -1,0 +1,45 @@
+{
+  "client": {
+    "name": "PT Proyek Sinar",
+    "address": "Jl. Asia Afrika No. 456, Bandung 40211",
+    "contact": "Sari Wijaya",
+    "email": "sari.wijaya@sinarproyek.co.id",
+    "npwp": "98765432109876543210",
+    "fax": "+62-22-5555-5678"
+  },
+  "vendor": {
+    "name": "PT Trafo Makmur",
+    "address": "Jl. Surabaya No. 90, Surabaya 60234",
+    "attention": "Diana Prasetyo <diana@trafomakmur.co.id>",
+    "fax": "+62-31-5555-3456"
+  },
+  "project": {
+    "subject": "Pembelian Trafo 500kVA",
+    "no": "PO-2024-002",
+    "date": "18/10/2024",
+    "ref": "SPJ-2024-002"
+  },
+  "items": [
+    {
+      "item": "1",
+      "quantity": 2,
+      "unit": "Buah",
+      "description": "ACB Mitsubishi 1000A 415V 3Ph",
+      "unit_price": 15500000,
+      "amount": 31000000
+    },
+    {
+      "item": "2",
+      "quantity": 1,
+      "unit": "Set",
+      "description": "Panel Penghubung ACB",
+      "unit_price": 5000000,
+      "amount": 5000000
+    }
+  ],
+  "totals": {
+    "subtotal": 36000000,
+    "tax": 0,
+    "grand_total": 36000000
+  }
+}

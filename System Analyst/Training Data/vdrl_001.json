@@ -1,0 +1,36 @@
+{
+  "documents": [
+    {
+      "no": "1",
+      "key_doc": "DOC-001",
+      "doc_no_status": "PO-2024-001 (Draft)",
+      "description": "Cover + Content",
+      "approval_class": "A",
+      "doc_type": "PO",
+      "plan_submission_date": "15/10/2024",
+      "latest_received": {
+        "issued_date": "10/10/2024",
+        "issued_tra": "TRA-2024-001",
+        "returned_date": "-",
+        "returned_tra": "-",
+        "returned_code": "-"
+      }
+    },
+    {
+      "no": "2",
+      "key_doc": "DOC-002",
+      "doc_no_status": "DRW-2024-015 (Review)",
+      "description": "Isdrawing ACB-1000A",
+      "approval_class": "R",
+      "doc_type": "Drawing",
+      "plan_submission_date": "20/10/2024",
+      "latest_received": {
+        "issued_date": "-",
+        "issued_tra": "-",
+        "returned_date": "-",
+        "returned_tra": "-",
+        "returned_code": "-"
+      }
+    }
+  ]
+}
