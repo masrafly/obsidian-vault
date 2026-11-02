@@ -61,19 +61,25 @@ SaaS berbasis web yang **otomatisasi** seluruh workflow Document Control dengan:
 | F-004 | Multi-client Templates | Dukung template berbeda untuk klien berbeda | Must Have |
 | F-005 | Project Folder Management | Admin membuat folder project per klien (contoh: `01_Project PT Anggun Sejahtera`) sebagai container seluruh template & dokumen project tersebut | Must Have |
 | F-006 | Template Upload per Project | Admin masuk ke folder project → upload template Cover/VDRL/Content milik klien tersebut | Must Have |
-| F-007 | VDRL Legend/Code Mapping | Simpan master code configurable per klien untuk Approval Class, Document Type, Return Code (karena kode bervariasi antar klien, kadang ada di sheet legend terpisah) | Must Have |
+| F-007 | VDRL Legend Auto-Parser | **Divalidasi dengan file riil klien (2026-11-02).** Saat Admin upload VDRL, sistem deteksi & parse sheet legend (misal "Technical Doc Procedure") secara otomatis untuk extract mapping Approval Class, Document Type, Status Code, Return Code — tanpa input manual | Must Have |
+| F-008 | Document Numbering Parser | Parse format nomor dokumen client (contoh pattern: `AABB-POXXX-CCDD-EE-FF/GH-IJXXX`) dari data VDRL existing untuk validasi konsistensi & auto-suggest nomor dokumen baru | Nice to Have |
 
 ### 3.1a VDRL (Vendor Document Register List) — Spesifikasi Kolom
 
-> Detail lengkap & contoh kasus: lihat [[Business Process - Smart Document Control Automation]] §1.3
+> Detail lengkap, contoh kasus, & analisis file VDRL riil klien: lihat [[Business Process - Smart Document Control Automation]] §1.3, §4
 
 | Kolom | Isi | Configurable? |
 |-------|-----|----------------|
-| Approval Class | `A` = Approval, `I` = Information (contoh) | Ya, per klien |
-| Document Type | `LS` = List, `CE` = Certificate (contoh) | Ya, per klien |
-| Plan Submission Date | Tanggal rencana submit; **auto-update** saat Doc. Control mulai buat dokumen | Tidak (perilaku sistem) |
-| Issued → Date, TRA (Transmittal No.) | Tanggal & no. transmittal saat dokumen **dikirim ke klien** | Tidak |
-| Returned → Date, TRA, Code | Tanggal & no. transmittal saat klien **mengembalikan** dokumen, + Return Code (contoh: Code 1 = Approved without comment/closed, Code 2 = Approved with comment/perlu revisi) | Ya, Return Code list per klien |
+| No, Key Doc, PO No, Doc/Dwg No, Description | Master data dokumen | Tidak (input sekali) |
+| REV, STS | Revisi & status saat ini (`0,A,B...` / `IFC,IFA,AFC,IFI,ASB`) | Mengikuti aturan fase per Approval Class — lihat §4.2 di Business Process doc |
+| Approval Class | `A` = Approval, `I` = Information (contoh) | Ya, extract dari legend sheet klien (F-007) |
+| Document Type | `LS`=List, `CE`=Certificate, dll (±80 kode mungkin ada) | Ya, extract dari legend sheet klien (F-007) |
+| Plan Submission Date | Tanggal rencana submit; **auto-update** saat Doc. Control selesai merge & simpan file | Tidak (perilaku sistem) |
+| Issued → Date, TRA | Tanggal & no. transmittal **per-batch** saat dokumen dikirim ke klien | Tidak |
+| Returned → Date, TRA, Code | Tanggal & no. transmittal saat klien kembalikan dokumen, + Return Code | Ya, Return Code list per klien (F-007) |
+
+> ⚠️ **Update penting:** Grup kolom Issued/Returned **berulang dinamis** (bisa >1 siklus per dokumen, sesuai jumlah revisi sampai status closed/approved) — bukan 1 pasang statis.
+> ⚠️ **Trigger update VDRL:** HANYA saat Doc. Control selesai merge Cover+Content dan file sudah masuk folder tujuan (bukan saat form diisi atau saat draft ditunda).
 
 ### 3.2 Core Module: Form-Based Document Creation
 
