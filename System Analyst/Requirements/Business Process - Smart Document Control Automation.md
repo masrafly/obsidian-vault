@@ -98,6 +98,18 @@ VDRL berformat Excel, kolom lengkap aktual (urut kiri→kanan):
   - Kolom-kolom di grup `Latest Received/Returned Doc Vendor` (Issued Date/TRA, Returned Date/TRA/Code)
 - Kolom lain di VDRL (No, Key Doc, PO No, Doc/Dwg No, Description, Approval Class, Doc Type) bersifat **master data**, diisi sekali di awal dan tidak berubah otomatis.
 
+### 2.5 Konfirmasi Tanggal Kirim (Send Date Confirmation) & Auto-Update Siklus Issued/Returned
+
+> **Update 2026-11-02** berdasarkan klarifikasi user.
+
+- Dokumen-dokumen yang sudah final (hasil merge, sudah masuk folder tujuan) terkumpul dalam satu **"Folder Siap Kirim"** (batch pengiriman) sebelum benar-benar dikirim ke klien.
+- Sebelum batch ini dianggap "terkirim", sistem menampilkan **popup konfirmasi tanggal kirim** ke Doc. Control — Doc. Control mengisi/mengonfirmasi tanggal fix pengiriman (bisa beda dari tanggal file selesai dibuat).
+- **Setelah tanggal dikonfirmasi ("fixed"):**
+  - Sistem **otomatis menambah siklus Issued/Returned baru** di VDRL untuk semua dokumen dalam batch tersebut (tidak perlu Doc. Control tambah manual).
+  - Semua dokumen dalam 1 batch mendapat **TRA (nomor transmittal) yang sama** dan **Issued Date = tanggal yang dikonfirmasi**.
+  - Ini konsisten dengan sifat **Transmittal per-batch** (lihat §5).
+- Sisi **Returned** (tanggal & TRA balik dari klien, + Return Code) akan terisi kemudian, saat klien benar-benar mengirim balik dokumen — kemungkinan diinput manual oleh Doc. Control/Admin berdasarkan transmittal letter fisik dari klien (belum ada mekanisme otomatis untuk sisi ini karena datanya datang dari luar sistem).
+
 ---
 
 ## 3. Diagram Alur Ringkas
@@ -116,8 +128,12 @@ DOCUMENT CONTROL
   4a. Belum ada content → tunda / simpan sebagai draft (VDRL belum berubah)
   4b. Ada content → Merge Cover + Content → simpan ke folder tujuan
   5. Popup pilih lokasi simpan (default sistem / folder khusus)
-  6. SAAT file masuk folder tujuan → VDRL auto-update: REV, STS, Plan Submission Date, Latest Received/Returned (per batch TRA)
-  7. Jika perlu revisi (Return Code = perlu comment) → Edit → isi ulang Form → remap ke Template → re-generate → siklus Issued/Returned baru di VDRL
+  6. SAAT file masuk folder tujuan → VDRL auto-update: REV, STS, Plan Submission Date
+  7. Kumpulkan dokumen final ke "Folder Siap Kirim" (batch)
+  8. Popup konfirmasi tanggal kirim → setelah di-fix:
+     → Sistem OTOMATIS buat siklus Issued baru (TRA sama untuk semua dok dalam batch)
+  9. (Nanti, saat klien balas) → Input manual Returned Date/TRA/Code dari transmittal klien
+  10. Jika Return Code = perlu revisi → Edit → isi ulang Form → remap ke Template → re-generate → ulang ke langkah 7
 ```
 
 ---
@@ -158,9 +174,23 @@ AABB - POXXX - CCDD - EE - FF/GH - IJXXX
 ### 4.3 Legend Kode Lain (Document Type, Facility, System, Discipline, dll)
 File klien ini juga punya tabel kode sangat panjang untuk: Facility Code, System Code, Discipline Code, Document Type Code (`LS`=List, `CE`=Certificate, `M`=Equipment Data Sheet, `P`=Specifications, `Q`=Reports, dll — ±80 kode), dan Drawing Category Code. **Semua ini unik per klien** dan harus di-parse otomatis dari sheet legend saat Admin upload VDRL, bukan di-hardcode di sistem.
 
-### 4.4 Implikasi untuk ML/Parsing Engine
-- Sistem perlu modul **"Legend Sheet Parser"**: deteksi sheet kedua/lain dalam file VDRL yang berisi tabel legend (bukan cuma 1 sheet data utama), lalu extract key-value mapping (code → deskripsi) untuk Approval Class, Doc Type, Status, dan kode-kode lain.
-- Pola deteksi sheet legend: biasanya diberi nama seperti "Technical Doc Procedure", "Legend", "Notes", dll — perlu heuristik nama sheet + struktur tabel (ada 2 kolom kode-deskripsi berdekatan).
+### 4.4 Kapan & Di Proses Mana Legend Parser Jalan?
+
+> **Jawaban langsung untuk pertanyaan user "Legend parser proses yang mana?"**
+
+Legend Parser adalah bagian dari **Workflow Administrator §1.2 (Input Template Dokumen Klien)**, bukan proses terpisah yang jalan tiap kali dokumen dibuat. Urutannya:
+
+1. Admin upload file **VDRL** (Excel) ke folder project — ini bagian dari fitur **F-006 Template Upload per Project**.
+2. **Begitu file VDRL ter-upload**, sistem otomatis trigger **Legend Parser (F-007)** — tanpa Admin perlu klik tombol lain:
+   - Scan **semua sheet** dalam file Excel tersebut (bukan cuma sheet data utama `VDRL`).
+   - Deteksi sheet mana yang berisi legend (contoh di file riil: sheet `Technical Doc Procedure`) — pakai heuristik nama sheet umum ("Legend", "Procedure", "Notes", "Reference") + struktur tabel 2 kolom kode-deskripsi berdekatan.
+   - Extract mapping: Approval Class (`A`/`I` → artinya), Document Type (`LS`/`CE`/... → artinya), Status Code (`AFC`/`IFA`/`IFI`/`IFC`/`ASB` → artinya + urutan fase), format Document Numbering (`AABB-POXXX-...`).
+   - Simpan hasil sebagai **konfigurasi/master data khusus project tersebut** (1 VDRL = 1 project, jadi 1 set legend per project).
+3. Konfigurasi ini dipakai BELAKANGAN oleh proses lain — bukan di titik upload saja:
+   - Saat **Form Generator** (§2.1) membuat form untuk Doc. Control — dropdown Approval Class/Doc Type di form diisi dari legend hasil parse, bukan hardcode.
+   - Saat **validasi nomor dokumen baru** — dicocokkan ke pola Document Numbering project tersebut.
+   - Saat **auto-update VDRL** (§2.4) — status/rev yang di-set divalidasi terhadap daftar status code yang valid dari legend.
+4. Parser ini jalan **1x saat VDRL diupload**, bukan tiap kali dokumen dibuat. Kalau klien update/replace VDRL (versi baru), Admin re-upload → parser jalan ulang untuk refresh config.
 
 ---
 
@@ -168,19 +198,17 @@ File klien ini juga punya tabel kode sangat panjang untuk: Facility Code, System
 
 | # | Pertanyaan | Jawaban User |
 |---|------------|---------------|
-| 1 | 1 folder project = 1 VDRL atau bisa banyak? | **VDRL = acuan/informasi** untuk apa yang harus diisi dalam pembuatan dokumen. (Implikasi: VDRL adalah master reference per project; detail multi-VDRL per project belum eksplisit dikonfirmasi — lihat sisa pertanyaan di §6) |
+| 1 | 1 folder project = 1 VDRL atau bisa banyak? | **1 Project = 1 VDRL** (dikonfirmasi final) |
 | 2 | Legend kode manual atau extract otomatis? | **Extract otomatis** dari sheet Excel klien (dikonfirmasi & divalidasi dengan file riil — lihat §4) |
 | 3 | Dokumen "ditunda" tercatat di VDRL? | **Tidak tercatat.** VDRL baru update setelah Doc. Control **selesai merge Cover+Content DAN file masuk folder tujuan**. Yang update: REV, STS, Plan Submission Date, dan kolom Latest Received/Returned (karena sifatnya aktual) |
 | 4 | Nomor Transmittal per dokumen atau per batch? | **Per batch** (dikonfirmasi, sesuai juga dengan data riil: TR-1 dipakai untuk beberapa dokumen yang di-submit bersamaan) |
 | 5 | Admin vs Doc. Control beda permission untuk isi Form? | **Sama saja** — tidak ada pembedaan permission |
+| 6 | Siklus Issued/Returned baru ditambah otomatis sistem atau manual? | **Otomatis oleh sistem**, dipicu oleh "Popup Konfirmasi Tanggal Kirim" (lihat §2.5) — begitu tanggal kirim di-fix, sistem auto-create siklus Issued baru untuk semua dokumen dalam batch tersebut |
+| 7 | Legend Parser proses di titik mana? | Jalan **otomatis 1x saat Admin upload file VDRL** (bagian dari §1.2), bukan per-dokumen. Detail lengkap di §4.4 |
 
 ---
 
-## 6. Sisa Open Questions
 
-- [ ] Apakah 1 project bisa punya lebih dari 1 file VDRL (misal per discipline/paket pekerjaan terpisah), atau selalu 1 VDRL per project?
-- [ ] Saat sistem mendeteksi dokumen butuh **siklus Issued/Returned baru** (misal karena Return Code = "Approved with comment"), apakah sistem otomatis menambah kolom siklus baru di VDRL, atau Doc. Control yang trigger manual revisi berikutnya?
-- [ ] Apakah "Legend Sheet Parser" (§4.4) perlu tahap review manual oleh Admin sebelum dipakai sistem (supaya tidak salah mapping), atau full otomatis tanpa verifikasi?
 
 ---
 

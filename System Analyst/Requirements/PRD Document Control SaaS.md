@@ -61,8 +61,10 @@ SaaS berbasis web yang **otomatisasi** seluruh workflow Document Control dengan:
 | F-004 | Multi-client Templates | Dukung template berbeda untuk klien berbeda | Must Have |
 | F-005 | Project Folder Management | Admin membuat folder project per klien (contoh: `01_Project PT Anggun Sejahtera`) sebagai container seluruh template & dokumen project tersebut | Must Have |
 | F-006 | Template Upload per Project | Admin masuk ke folder project → upload template Cover/VDRL/Content milik klien tersebut | Must Have |
-| F-007 | VDRL Legend Auto-Parser | **Divalidasi dengan file riil klien (2026-11-02).** Saat Admin upload VDRL, sistem deteksi & parse sheet legend (misal "Technical Doc Procedure") secara otomatis untuk extract mapping Approval Class, Document Type, Status Code, Return Code — tanpa input manual | Must Have |
+| F-007 | VDRL Legend Auto-Parser | **Trigger: otomatis 1x saat Admin upload file VDRL** (bagian dari F-006, bukan proses per-dokumen). Scan semua sheet Excel, deteksi sheet legend (misal "Technical Doc Procedure"), extract mapping Approval Class, Document Type, Status Code, Return Code, format Document Numbering. Hasil disimpan sebagai config khusus project (karena **1 Project = 1 VDRL**, 1 config per project) | Must Have |
 | F-008 | Document Numbering Parser | Parse format nomor dokumen client (contoh pattern: `AABB-POXXX-CCDD-EE-FF/GH-IJXXX`) dari data VDRL existing untuk validasi konsistensi & auto-suggest nomor dokumen baru | Nice to Have |
+| F-009 | Send Date Confirmation Popup | Dokumen final dikumpulkan ke "Folder Siap Kirim" (batch). Sebelum batch ditandai terkirim, popup minta Doc. Control konfirmasi/fix tanggal kirim. Setelah di-fix → trigger F-010 | Must Have |
+| F-010 | Auto Create Issued Cycle | Dipicu oleh F-009: begitu tanggal kirim di-fix, sistem **otomatis** membuat siklus Issued baru di VDRL untuk semua dokumen dalam batch (TRA & Issued Date sama untuk 1 batch). Sisi Returned (Date/TRA/Code) tetap diinput manual saat klien balas | Must Have |
 
 ### 3.1a VDRL (Vendor Document Register List) — Spesifikasi Kolom
 
