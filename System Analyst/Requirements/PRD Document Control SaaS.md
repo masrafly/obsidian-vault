@@ -28,22 +28,23 @@ SaaS berbasis web yang **otomatisasi** seluruh workflow Document Control dengan:
 
 ---
 
-## 2. User Personas
+## 2. User Roles
 
-### 2.1 Document Control Officer (Primary User)
-- **Role:** Mengelola seluruh proses document control untuk proyek
-- **Needs:** Otomatisasi, akurasi, cepat, template consistency
-- **Goals:** Kurangi waktu pembuatan dokumen 70-80%
+> **Update 2026-11-02:** Role resmi disederhanakan jadi 2 role utama sesuai proses bisnis. Detail lengkap workflow per role ada di [[Business Process - Smart Document Control Automation]].
 
-### 2.2 Project Manager (Secondary User)
-- **Role:** Monitor progress dokumen
-- **Needs:** Status tracking, approval workflows
-- **Goals:** Cepat dapat status dokumen, otomatis approval
+### 2.1 Administrator (Setup & Configuration)
+- **Role:** Membuat struktur folder project per klien, upload & input template dokumen klien (Cover, VDRL, Content, dll), memicu sistem untuk belajar struktur template → generate form.
+- **Needs:** Tool upload template yang fleksibel, kemampuan sistem mendeteksi variabel/struktur otomatis, konfigurasi legend kode (Approval Class, Document Type, Return Code) per klien.
+- **Goals:** Setup project baru cepat & terstruktur; template klien baru bisa "dikenali" sistem tanpa coding ulang.
+- **Catatan:** Admin juga bisa ikut mengisi Form (tidak eksklusif milik Doc. Control).
 
-### 2.3 Sales Engineer (Tertiary User)
-- **Role:** Input requirements dari klien
-- **Needs:** User-friendly form input, validation
-- **Goals:** Input cepat, tidak perlu mikirin format
+### 2.2 Document Control / Doc. Control (Primary Operational User)
+- **Role:** Mengisi form hasil generate dari template, generate PDF otomatis, merge Cover+Content, mengelola revisi & lokasi penyimpanan file final.
+- **Needs:** Otomatisasi, akurasi, cepat, template consistency, fleksibilitas simpan file (default/folder sendiri).
+- **Goals:** Kurangi waktu pembuatan dokumen 70-80%.
+
+### 2.3 (Deprioritized — digabung/dipertimbangkan ulang)
+- **Project Manager** & **Sales Engineer** dari draft awal PRD belum disebut eksplisit dalam proses bisnis terbaru. Kemungkinan perannya melebur ke Administrator, atau akan jadi role tambahan di fase berikutnya (approval workflow, Phase 3). Perlu konfirmasi ke stakeholder.
 
 ---
 
@@ -58,6 +59,21 @@ SaaS berbasis web yang **otomatisasi** seluruh workflow Document Control dengan:
 | F-002 | Template Variables | Identifikasi variabel (doc number, title, category, etc.) | Must Have |
 | F-003 | Template Versioning | Version control untuk tiap template | Nice to Have |
 | F-004 | Multi-client Templates | Dukung template berbeda untuk klien berbeda | Must Have |
+| F-005 | Project Folder Management | Admin membuat folder project per klien (contoh: `01_Project PT Anggun Sejahtera`) sebagai container seluruh template & dokumen project tersebut | Must Have |
+| F-006 | Template Upload per Project | Admin masuk ke folder project → upload template Cover/VDRL/Content milik klien tersebut | Must Have |
+| F-007 | VDRL Legend/Code Mapping | Simpan master code configurable per klien untuk Approval Class, Document Type, Return Code (karena kode bervariasi antar klien, kadang ada di sheet legend terpisah) | Must Have |
+
+### 3.1a VDRL (Vendor Document Register List) — Spesifikasi Kolom
+
+> Detail lengkap & contoh kasus: lihat [[Business Process - Smart Document Control Automation]] §1.3
+
+| Kolom | Isi | Configurable? |
+|-------|-----|----------------|
+| Approval Class | `A` = Approval, `I` = Information (contoh) | Ya, per klien |
+| Document Type | `LS` = List, `CE` = Certificate (contoh) | Ya, per klien |
+| Plan Submission Date | Tanggal rencana submit; **auto-update** saat Doc. Control mulai buat dokumen | Tidak (perilaku sistem) |
+| Issued → Date, TRA (Transmittal No.) | Tanggal & no. transmittal saat dokumen **dikirim ke klien** | Tidak |
+| Returned → Date, TRA, Code | Tanggal & no. transmittal saat klien **mengembalikan** dokumen, + Return Code (contoh: Code 1 = Approved without comment/closed, Code 2 = Approved with comment/perlu revisi) | Ya, Return Code list per klien |
 
 ### 3.2 Core Module: Form-Based Document Creation
 
@@ -78,6 +94,9 @@ SaaS berbasis web yang **otomatisasi** seluruh workflow Document Control dengan:
 | F-202 | PDF Merging | Gabungkan Cover PDF + Content PDF menjadi satu | Must Have |
 | F-203 | PDF Metadata | Tambah metadata (doc number, title, dates) | Nice to Have |
 | F-204 | PDF Signing | Tambah tanda tangan digital (Opsional) | Nice to Have |
+| F-205 | Defer Merge (Draft State) | Jika content belum tersedia, dokumen Cover yang sudah di-generate bisa disimpan sebagai draft, lanjut merge belakangan | Must Have |
+| F-206 | Save Location Popup | Setelah merge selesai, sistem menampilkan popup agar Doc. Control pilih lokasi simpan: folder default sistem atau folder khusus yang sudah dibuat sendiri | Must Have |
+| F-207 | Edit & Re-map Document | Dokumen yang sudah final/PDF tetap bisa diedit: buka form lagi → isi ulang → remap ke template → re-generate PDF | Must Have |
 
 ### 3.4 Core Module: Document Control & Transmittal
 
@@ -335,3 +354,4 @@ Week 5-8: Notification system & dashboard
 4. [ ] Database Schema Design
 5. [x] ML Training Dataset List → `Training Data/` folder ready
 6. [ ] Validation Report → `Training Data/Validation Report.md`
+7. [x] Business Process Detail (Admin & Doc. Control workflow, VDRL spec) → [[Business Process - Smart Document Control Automation]]
