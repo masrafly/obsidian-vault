@@ -1,7 +1,9 @@
-# Business Process: Smart Document Control Automation
+# Business Process: Smart Document Control Automation — ⚠️ SUPERSEDED (role/workflow, bukan data)
+
+> **SUPERSEDED 2026-11-02:** Role/workflow (Administrator, Document Control, folder project, popup, dll) di bawah **tidak lagi jadi acuan** — arah project pindah ke [[PRD v2 - LLM Document Generator]] (fine-tune LLM sendiri). **Tapi** struktur data VDRL riil, legend kode, format penomoran dokumen (§1.3, §4) masih **sangat berguna sebagai referensi dataset** untuk training.
 
 **Source:** User input (proses bisnis), 2026-11-02
-**Related:** [[PRD Document Control SaaS]]
+**Related:** [[PRD Document Control SaaS]] (superseded), [[PRD v2 - LLM Document Generator]] (arah baru)
 
 ---
 

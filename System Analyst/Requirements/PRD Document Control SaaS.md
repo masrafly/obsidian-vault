@@ -1,4 +1,7 @@
-# Product Requirements Document (PRD)
+# Product Requirements Document (PRD) — ⚠️ SUPERSEDED
+
+> **SUPERSEDED 2026-11-02:** Arah project berubah total. User memutuskan untuk **tidak** melanjutkan konsep "SaaS platform dengan role Admin/Doc Control" ini — fokus baru adalah **fine-tune LLM sendiri untuk generate dokumen** (lihat [[PRD v2 - LLM Document Generator]]). Dokumen ini & [[Business Process - Smart Document Control Automation]] disimpan sebagai **referensi struktur dokumen/data** (field PO, kolom VDRL, dll — masih berguna sebagai bahan dataset), TAPI arsitektur sistem (role, folder project, popup, dll) di bawah ini **tidak lagi jadi acuan pengembangan**.
+
 ## SaaS Document Control System untuk Vendor Alat Listrik
 
 **Project:** Document Control Automation Platform  
