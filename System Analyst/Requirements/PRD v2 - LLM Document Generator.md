@@ -1,109 +1,136 @@
-# PRD v2 — Custom LLM Document Generator (Fine-tuning Project)
+# PRD v2 — Document Generator berbasis RAG + Ollama
 
-**Status:** Draft awal — menggantikan arah "SaaS platform" sebelumnya ([[PRD Document Control SaaS]], sekarang superseded)
-**Date:** 2026-11-02
-**Related:** [[Business Process - Smart Document Control Automation]] (struktur data/dataset masih relevan)
+**Status:** Draft v2 — menggantikan pendekatan fine-tuning penuh ([[PRD v2 - LLM Document Generator]] versi awal kini usang) dan arah "SaaS platform" ([[PRD Document Control SaaS]], superseded)
+**Date:** 2026-11-02 (update: pivot ke RAG)
+**Related:** [[Business Process - Smart Document Control Automation]] (struktur data), [[Ollama RAG Integration]] (draft teknis sebelumnya — sudah ada di vault, dipakai sebagai basis)
 
 ---
 
 ## 1. Tujuan
 
-Membangun **LLM hasil fine-tuning sendiri** (bukan sekadar wrapper prompt ke API eksternal) yang bisa **generate dokumen** (PO, VDRL, Cover, Content, Transmittal, dan kemungkinan jenis lain yang muncul dari dataset) berdasarkan data project/klien yang diberikan user.
+Membangun sistem **generate dokumen** (PO, VDRL, Cover, Content, Transmittal, dan jenis lain yang muncul dari dataset) menggunakan:
+- **RAG (Retrieval-Augmented Generation)** — bukan fine-tuning penuh — untuk grounding jawaban model ke template/dataset/dokumen riil milik user
+- **Ollama** sebagai runtime LLM lokal (model open-source jalan di mesin sendiri, bukan API cloud berbayar)
+- **Fine-tuning ringan (opsional, scope kecil)** — hanya kalau setelah RAG+prompting dievaluasi masih kurang konsisten di gaya/format output tertentu. Bukan prioritas awal.
 
-**Yang BELUM diputuskan (sengaja ditunda, bukan dihapus):**
-- Apakah nanti dibungkus jadi aplikasi (web/desktop) dengan role Admin/Doc Control seperti draft sebelumnya — **ditunda**, fokus dulu ke model-nya jalan dan akurat.
-
----
-
-## 2. Constraints & Resource
-
-| Item | Value | Implikasi |
-|------|-------|-----------|
-| GPU | **RTX 3060, 12GB VRAM** (lokal, Windows host — WSL via CUDA passthrough) | Cukup untuk **QLoRA 4-bit fine-tuning** model 7B–8B. Full fine-tuning atau model >13B tidak realistis di GPU ini. |
-| Approach | **Fine-tune model open-source** (bukan RAG, bukan train from scratch) | Perlu pipeline: data prep → tokenize → QLoRA train → evaluate → inference |
-| Bahasa | Dokumen campuran **Bahasa Indonesia + English** (istilah teknis/engineering) | Model dasar harus kuat multilingual ID+EN |
-
-### 2.1 Kandidat Model Dasar (base model untuk fine-tune)
-
-| Model | Size | Alasan |
-|-------|------|--------|
-| **Qwen2.5-7B-Instruct** ⭐ rekomendasi awal | 7B | Multilingual terbaik di kelasnya (termasuk Bahasa Indonesia), kuat untuk structured output/instruction following, didukung baik oleh tooling fine-tuning (Unsloth, LlamaFactory) |
-| Llama-3.1-8B-Instruct | 8B | General purpose kuat, ekosistem besar, Indonesian cukup baik tapi di bawah Qwen |
-| Mistral-7B-Instruct-v0.3 | 7B | Ringan & cepat, instruction following bagus, Indonesian lebih lemah dari 2 di atas |
-
-→ Semua 3 **feasible di RTX 3060 12GB** pakai QLoRA 4-bit + library **Unsloth** (lebih hemat VRAM & lebih cepat dibanding HF Transformers+PEFT biasa — direkomendasikan untuk GPU consumer).
-
-### 2.2 Training Stack yang Disarankan
-```
-Framework   : Unsloth (atau HF Transformers + PEFT + bitsandbytes kalau Unsloth tidak cocok)
-Quantization: 4-bit (QLoRA)
-Method      : LoRA / QLoRA, rank 16-64
-Context     : mulai 2048-4096 token (naikkan kalau VRAM masih sisa)
-OS Note     : training jalan di WSL (CUDA on WSL2 didukung native oleh NVIDIA driver,
-              beda dengan masalah Node/npm native binary — training Python/CUDA
-              AMAN dijalankan langsung dari WSL, tidak perlu bridge ke Windows-native
-              seperti kasus npm; tapi kalau nanti ada bagian app Node.js yang jalan
-              dari path D:\, lihat skill wsl-windows-dev-bridge)
-```
+**Perubahan dari draft sebelumnya:**
+| | v1 (usang) | v2 (sekarang) |
+|---|---|---|
+| Pendekatan utama | Fine-tune QLoRA | **RAG** |
+| Serving | Belum ditentukan | **Ollama** |
+| Fine-tuning | Wajib, phase awal | **Opsional, scope ringan, belakangan** |
+| Kebutuhan dataset besar | Ya (puluhan-ratusan contoh/tipe) | **Tidak wajib** — RAG bisa jalan dengan dataset kecil (retrieval dari apa yang ada), makin banyak dokumen makin bagus tapi bukan blocker |
 
 ---
 
-## 3. Dataset Strategy
+## 2. Kenapa RAG (bukan Fine-tuning penuh)
 
-### 3.1 Yang Sudah Ada
-- 5 template dokumen (PO Kurang Lebih, VDRL, Cover, Content, Transmittal) — `System Analyst/Templates/`
-- 1 file VDRL **riil** dari klien (Genting Oil Kasuri/Bartec) — struktur lengkap tervalidasi, lihat [[Business Process - Smart Document Control Automation]] §1.3 & §4
-- Beberapa sample JSON sintetis (`Training Data/*.json`)
-
-### 3.2 Yang Perlu Ditambah
-- **Lebih banyak dokumen riil** per jenis (idealnya puluhan-ratusan contoh per tipe dokumen) — sample sintetis tidak cukup untuk fine-tuning yang baik
-- Variasi klien (beda PT, beda format) supaya model belajar generalisasi, bukan cuma hafal 1 format
-- **Sistem boleh belajar nambah/ubah scope dokumen** dari dataset yang diberikan (dikonfirmasi user) — jadi struktur data tidak fixed dari sekarang, akan menyesuaikan apa yang ada di dataset riil
-
-### 3.3 Format Dataset untuk Fine-tuning (perlu didiskusikan lebih lanjut — lihat §5 Open Question)
-Dua pendekatan yang mungkin, **belum diputuskan**:
-
-**A. Structured Field Generation** (model output = JSON/field values, lalu dipetakan ke template)
-```
-Instruction: "Generate data PO untuk project X, klien Y, item Z..."
-Output: {"client_address": "...", "po_no": "...", "items": [...]}
-```
-- ✅ Lebih aman/akurat untuk dokumen legal-administratif (PO, VDRL) — minim risiko halusinasi
-- ❌ Kurang fleksibel untuk dokumen yang butuh teks naratif panjang (Content)
-
-**B. Free-form Document Generation** (model output = teks dokumen lengkap)
-```
-Instruction: "Buatkan Content document untuk Technical Data Sheet komponen ACB 630A..."
-Output: <narasi teknis lengkap>
-```
-- ✅ Cocok untuk dokumen naratif (Content, deskripsi teknis)
-- ❌ Risiko halusinasi lebih tinggi untuk data presisi (nomor, tanggal, kode)
-
-**Kemungkinan jalan tengah:** hybrid — Structured generation untuk PO/VDRL/Cover/Transmittal (data presisi), Free-form untuk Content (butuh narasi).
+- Tidak perlu training berat di GPU (RTX 3060 12GB jadi cukup lega karena cuma dipakai untuk **inference**, bukan training)
+- Lebih cepat setup & iterasi — ganti/tambah dokumen referensi tidak perlu re-training, cukup re-index ke vector DB
+- Lebih mudah **audit sumber jawaban** (bisa lihat dokumen mana yang jadi rujukan) — penting untuk dokumen legal-administratif (PO, VDRL) yang butuh akurasi tinggi
+- Risiko halusinasi lebih terkontrol dibanding model "murni" tanpa grounding
 
 ---
 
-## 4. Roadmap Teknis (Draft)
+## 3. Arsitektur (berbasis draft [[Ollama RAG Integration]] yang sudah ada)
+
+```
+┌─────────────────────┐
+│  Obsidian Vault      │  Templates, VDRL riil, legend kode,
+│  (Knowledge Base)     │◄── sample dokumen, Business Process doc
+└──────────┬───────────┘
+           │  load & chunk
+           ▼
+┌─────────────────────┐
+│  Embedding Model      │  (lihat §4.2 — perlu dipilih, bukan cuma default)
+└──────────┬───────────┘
+           ▼
+┌─────────────────────┐
+│  Vector DB (ChromaDB) │  sudah ada draft: .chromadb di vault
+└──────────┬───────────┘
+           │  retrieve top-k context
+           ▼
+┌─────────────────────┐
+│  Ollama (LLM lokal)   │  generate jawaban/dokumen dari context + instruksi
+└──────────┬───────────┘
+           ▼
+┌─────────────────────┐
+│  Output               │  teks/field terisi → (nanti) di-mapping ke template
+└─────────────────────┘
+```
+
+### 3.1 Status Implementasi Saat Ini
+Sudah ada draft di vault (hasil eksplorasi sebelumnya — perlu di-review & dirapikan, bukan mulai dari nol):
+- `System Analyst/Technical/Ollama RAG Integration.md` — panduan arsitektur
+- `Scripts/ollama_rag.py` — script awal (load vault docs → index ke ChromaDB → query → generate via Ollama)
+
+**Yang perlu diperbaiki dari draft lama:**
+- Hardcode path `D:/Obsidian-Vault` — perlu dibuat portable (env var / config)
+- Belum ada pemilihan embedding model eksplisit (chromadb default embedding kurang optimal untuk Bahasa Indonesia)
+- Belum ada strategi chunking dokumen (markdown/VDRL excel perlu chunking berbeda dari teks biasa)
+- Model default `phi3:mini` terlalu kecil untuk kualitas produksi — perlu benchmark ulang
+
+---
+
+## 4. Rekomendasi Komponen
+
+### 4.1 LLM via Ollama (generation)
+RTX 3060 12GB VRAM untuk **inference** (bukan training) jauh lebih lega — bisa jalankan model lebih besar dari skenario fine-tuning sebelumnya:
+
+| Model (Ollama tag) | Size | Catatan |
+|---------------------|------|---------|
+| **qwen2.5:7b-instruct** ⭐ | 7B (Q4) | Multilingual ID+EN terbaik di kelasnya, instruction-following kuat |
+| qwen2.5:14b-instruct | 14B (Q4) | Kualitas lebih baik, masih fit di 12GB VRAM (Q4_K_M), lebih lambat |
+| llama3.1:8b-instruct | 8B (Q4) | Alternatif kuat, ekosistem besar |
+| phi3:mini / phi3:medium | 3.8B / 14B | Ringan untuk draft cepat, kualitas di bawah Qwen untuk B. Indonesia |
+
+→ Mulai dengan **qwen2.5:7b-instruct**, upgrade ke 14b kalau kualitas kurang dan masih ada budget VRAM/waktu.
+
+### 4.2 Embedding Model (retrieval)
+Draft lama pakai default embedding ChromaDB (kurang optimal). Rekomendasi:
+- **`bge-m3`** (multilingual, kuat untuk ID+EN, bisa dipakai via Ollama `ollama pull bge-m3` atau lewat `sentence-transformers`)
+- Alternatif: `nomic-embed-text` (tersedia di Ollama) — lebih ringan, English-leaning, cek dulu performa untuk teks ID
+
+### 4.3 Vector DB
+- **ChromaDB** (sudah di draft lama) — cukup untuk skala personal/single-user, tidak perlu ganti ke Qdrant/Weaviate kecuali nanti scale-up jadi app multi-user
+
+### 4.4 Chunking Strategy (perlu ditambahkan — belum ada di draft lama)
+- Dokumen template/markdown: chunk per section (heading-based), bukan fixed character count
+- VDRL Excel: tidak di-chunk sebagai teks biasa — baris data + legend sebaiknya di-index sebagai record terstruktur (metadata per baris: doc type, approval class, dll) supaya retrieval bisa filter, bukan cuma similarity search teks
+
+---
+
+## 5. Fine-tuning Ringan (Opsional, Scope Kecil — Nanti)
+
+Kalau setelah RAG+prompting dievaluasi masih ada masalah konsisten (contoh: format output selalu salah, gaya bahasa tidak sesuai), opsi ringan yang masih realistis di RTX 3060:
+- **LoRA kecil** (rank rendah, dataset kecil ±50-200 contoh) di atas model Ollama yang dipakai, fokus ke **format/style konsistensi**, bukan menambah pengetahuan baru (pengetahuan tetap dari RAG)
+- Tools: Unsloth (ringan di 12GB) kalau opsi ini jadi diambil
+- **Ini bukan Phase awal** — baru dipertimbangkan setelah RAG dievaluasi kurang
+
+---
+
+## 6. Roadmap Teknis (Revisi)
 
 | Phase | Isi | Output |
 |-------|-----|--------|
-| **Phase 0: Dataset** | Kumpulkan & bersihkan dataset riil, tentukan format training (lihat §5) | Dataset siap training (format JSONL instruction-output) |
-| **Phase 1: Environment Setup** | Setup Unsloth/PEFT di WSL, verifikasi CUDA+GPU terdeteksi dari RTX 3060 | Environment training jalan, test run kecil sukses |
-| **Phase 2: Baseline Fine-tune** | QLoRA fine-tune base model dengan dataset awal (walau kecil) | Model v0.1, baseline evaluasi |
-| **Phase 3: Evaluasi & Iterasi** | Cek akurasi output (field benar, format benar, no halusinasi), tambah data kalau kurang | Model v0.x lebih baik |
-| **Phase 4: Inference & Serving** | Setup cara pakai model (Ollama / text-generation-webui / API sendiri) | Model bisa dipanggil untuk generate dokumen |
-| **Phase 5 (nanti):** Integrasi ke aplikasi | Baru dipikirkan setelah model terbukti akurat | — |
+| **Phase 0: Review draft lama** | Audit `Ollama RAG Integration.md` + `ollama_rag.py`, perbaiki path hardcode, pilih embedding model | Rencana implementasi konkret |
+| **Phase 1: Setup Ollama + Model** | Install Ollama, pull `qwen2.5:7b-instruct` + embedding model, test run | Ollama jalan, model bisa di-query |
+| **Phase 2: Knowledge Base Ingestion** | Load template, VDRL riil, legend, Business Process doc ke ChromaDB dengan chunking yang benar | Vector DB terisi & bisa di-query relevan |
+| **Phase 3: RAG Pipeline** | Retrieval → context injection → generate via Ollama, test end-to-end untuk tiap tipe dokumen | Pipeline generate dokumen jalan |
+| **Phase 4: Evaluasi** | Cek akurasi field, konsistensi format, halusinasi | Keputusan: cukup RAG saja, atau perlu fine-tuning ringan (§5) |
+| **Phase 5 (kondisional):** Fine-tuning ringan | Hanya kalau Phase 4 menunjukkan perlu | Model lebih konsisten di style/format |
+| **Phase 6 (nanti):** Integrasi ke aplikasi | Ditunda sampai pipeline generate terbukti akurat | — |
 
 ---
 
-## 5. Open Questions
+## 7. Open Questions
 
-- [ ] **Format output model**: Structured (JSON per field) / Free-form (teks penuh) / Hybrid? (lihat §3.3) — ini keputusan arsitektur penting, sebaiknya diputuskan sebelum Phase 0 dataset prep dimulai
-- [ ] Target volume dataset: berapa banyak contoh riil per jenis dokumen yang realistis bisa dikumpulkan user?
-- [ ] Apakah ada dokumen client lain (selain Genting Oil Kasuri/Bartec) yang bisa jadi sumber data tambahan?
-- [ ] Evaluasi keberhasilan: metrik apa yang dipakai untuk bilang "model ini sudah bagus" (field accuracy? human review? BLEU/ROUGE untuk teks naratif?)
+- [ ] Format output akhir: teks generate langsung dipakai, atau tetap perlu dipetakan ke field template (Word/Excel) seperti rencana lama?
+- [ ] Berapa banyak dokumen riil yang ada sekarang untuk di-index ke knowledge base (selain 1 VDRL Genting Oil Kasuri/Bartec)?
+- [ ] Ollama akan dipasang di Windows host (akses dari WSL via `OLLAMA_HOST`) atau langsung di WSL (CUDA on WSL2 didukung, lebih simpel satu environment)?
+- [ ] Evaluasi keberhasilan RAG: perlu test set pertanyaan/instruksi + jawaban yang diharapkan untuk ukur akurasi sebelum dianggap "siap pakai"
 
 ---
 
 ## Tag
-#llm #fine-tuning #document-generation #qlora #prd-v2
+#rag #ollama #document-generation #vector-db #chromadb #prd-v2
