@@ -13,6 +13,16 @@ Membangun sistem **generate dokumen** (PO, VDRL, Cover, Content, Transmittal, da
 - **Ollama** sebagai runtime LLM lokal (model open-source jalan di mesin sendiri, bukan API cloud berbayar)
 - **Fine-tuning ringan (opsional, scope kecil)** — hanya kalau setelah RAG+prompting dievaluasi masih kurang konsisten di gaya/format output tertentu. Bukan prioritas awal.
 
+### 1.1 UX/Interface — Diputuskan 2026-11-02 (sebelumnya "ditunda")
+
+> Lihat detail lengkap workflow di [[Business Process - Smart Document Control Automation]]
+
+- **UI chat**, mirip Claude/ChatGPT/Gemini — bukan form/folder-navigasi seperti draft awal.
+- **User biasa**: cukup kasih prompt natural language → langsung terima **dokumen jadi** (downloadable Word/PDF/Excel sesuai jenis dokumen, mapping ke template asli — bukan cuma teks chat biasa, mirip konsep "artifact/canvas").
+- Bisa **revisi iteratif via chat** dalam 1 thread ("ubah tanggal jadi besok", dll).
+- **Admin**: kelola knowledge base (upload template/VDRL per klien) via panel terpisah, bukan via chat.
+- Role disederhanakan jadi 2: **Admin** & **User (biasa)** — role "Document Control" dengan workflow form/merge/folder dari draft awal **tidak lagi dipakai**.
+
 **Perubahan dari draft sebelumnya:**
 | | v1 (usang) | v2 (sekarang) |
 |---|---|---|
