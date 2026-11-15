@@ -31,7 +31,8 @@ Peran Admin sekarang lebih ke **"melatih" sistem di belakang layar**, supaya Use
 - Admin bisa update/replace knowledge base kapan saja (misal klien kirim VDRL versi baru) → sistem re-index otomatis.
 
 ### 1.3 Kelola User
-- Admin kelola akun User biasa, dan (perlu diputuskan — lihat §6 Open Questions) kemungkinan assign User ke project/klien tertentu supaya chat mereka otomatis retrieve dari knowledge base yang relevan.
+- Admin kelola akun User biasa.
+- **Tidak ada assign User ke project tertentu** (dikonfirmasi) — semua User biasa akses semua project, karena output yang dihasilkan tetap bergantung pada apa yang diinput/di-prompt user sendiri (bukan soal pembatasan data per user).
 
 ---
 
@@ -39,11 +40,17 @@ Peran Admin sekarang lebih ke **"melatih" sistem di belakang layar**, supaya Use
 
 Ini perubahan paling besar dari draft sebelumnya. Alur baru:
 
-### 2.1 Buka Chat & Beri Prompt
+### 2.1 Buka Chat & Beri Prompt (atau Upload Template Sendiri)
 - User buka interface chat (mirip Claude/ChatGPT/Gemini).
+- **Akses semua project** (dikonfirmasi — tidak ada pembatasan Admin assign User ke project tertentu).
+- **Auto-detect project/klien dari isi prompt** (dikonfirmasi) — user tidak perlu pilih project manual dari dropdown, sistem (RAG) otomatis cocokkan prompt ke knowledge base project yang relevan berdasarkan nama klien/project/konteks yang disebut user.
 - User tulis prompt natural language, contoh:
   > *"Buatkan PO untuk PT Anggun Sejahtera, vendor ABC Electric, item Circuit Breaker 630A qty 5, tanggal pemesanan hari ini"*
   > *"Generate VDRL document baru untuk project Local Control Station, dokumen Technical Data Sheet"*
+- **Mode tambahan — Upload Template Ad-hoc oleh User biasa** (dikonfirmasi, bukan cuma Admin yang bisa upload template):
+  > *User upload file template dokumen langsung di chat → lalu prompt apa saja yang harus diisi ke template tersebut → sistem mapping input user ke template yang baru diupload itu.*
+  - Ini beda dari jalur Admin (§1.1) yang isi knowledge base jangka panjang untuk semua user — upload ad-hoc ini sifatnya **spesifik untuk 1 kebutuhan/thread chat saat itu**, template-nya belum tentu masuk ke knowledge base permanen (perlu diputuskan — lihat §6).
+  - Supaya akurat, **model tetap harus sudah "belajar" dari dataset-dataset sebelumnya** (hasil RAG indexing dari knowledge base Admin + histori dokumen) — upload ad-hoc ini memanfaatkan kemampuan umum yang sudah terbentuk, bukan dari nol.
 
 ### 2.2 Sistem Proses (di balik layar — RAG + Ollama)
 1. Sistem retrieve context relevan dari knowledge base (template yang cocok + data project/VDRL terkait) berdasarkan prompt.
@@ -54,16 +61,24 @@ Ini perubahan paling besar dari draft sebelumnya. Alur baru:
 - User terima **dokumen yang sudah jadi & siap pakai** langsung di chat (bisa didownload — Word/PDF/Excel sesuai jenis dokumennya), bukan cuma teks jawaban seperti chatbot biasa.
 - Mirip konsep "artifact/canvas" di Claude/ChatGPT, tapi khusus dokumen formal dengan format asli (bukan markdown preview saja).
 
-### 2.4 Refine via Chat (Iteratif)
+### 2.4 Refine via Chat (Iteratif) — dengan Versioning
+
+> **Keputusan desain (rekomendasi, lihat §6):** sistem simpan **state/versi dokumen yang sedang dikerjakan** per thread, dan tiap instruksi revisi cuma mengubah bagian yang diminta — bukan generate ulang total dari nol. Ini sejalan dengan konsep REV (revisi) yang sudah ada di VDRL, jadi tiap edit = kenaikan versi yang konsisten & tercatat.
+
 - User bisa lanjut chat untuk revisi, contoh:
   > *"Ubah tanggal submission jadi minggu depan"*
   > *"Tambahkan item baru: Relay Protection qty 2"*
-- Sistem regenerate/update dokumen berdasarkan instruksi baru, tetap dalam 1 thread percakapan.
+- Sistem update **hanya bagian yang diminta** pada dokumen versi terkini di thread tersebut (bukan regenerate semuanya dari awal) — field lain tetap persis sama seperti versi sebelumnya.
 
 ### 2.5 Finalisasi & Update VDRL
-- Saat User menganggap dokumen **final** (misal klik "Finalize"/"Kirim" di chat, atau prompt eksplisit "ini sudah final"), sistem:
+- **Finalisasi dideteksi dari kalimat/input user** (dikonfirmasi — bukan tombol UI eksplisit), misal user tulis "ini sudah final" / "kirim ke klien" / kalimat sejenis yang menandakan dokumen selesai.
+- Saat terdeteksi final, sistem:
   - Update VDRL otomatis: REV, STS, Plan Submission Date (sama seperti logic lama — lihat §5.2)
-  - Kalau dokumen ini bagian dari batch pengiriman ke klien → tetap ada **konfirmasi tanggal kirim** (bisa berupa prompt chat "tanggal kirim: ..." atau UI kecil di chat, bukan harus popup modal seperti draft form-based sebelumnya) → trigger auto-create siklus Issued baru di VDRL (logic sama seperti §5.3, cuma cara konfirmasinya menyesuaikan UX chat).
+  - Kalau dokumen ini bagian dari batch pengiriman ke klien → tetap ada **konfirmasi tanggal kirim** (via kalimat chat, misal user sebut tanggal kirimnya) → trigger auto-create siklus Issued baru di VDRL (logic sama seperti §5.3).
+  - ⚠️ Karena deteksi dari natural language (bukan tombol pasti), sistem sebaiknya **konfirmasi balik ke user** sebelum eksekusi final (misal: *"Dokumen ini akan ditandai final dan VDRL akan diupdate — konfirmasi?"*) supaya tidak salah trigger dari kalimat ambigu.
+
+### 2.6 Riwayat Chat
+- **Disimpan permanen per project/thread** (dikonfirmasi), bisa dibuka lagi kapan saja seperti riwayat chat ChatGPT/Claude — **kecuali User menghapusnya sendiri**.
 
 ---
 
@@ -73,17 +88,18 @@ Ini perubahan paling besar dari draft sebelumnya. Alur baru:
 ADMIN (sekali di awal / saat ada update)
   1. Upload template + VDRL klien ke knowledge base
   2. Sistem index ke vector DB + Legend Parser jalan otomatis
-  3. (Opsional) Assign User ke project/klien tertentu
 
-USER BIASA (tiap kali butuh dokumen)
+USER BIASA (tiap kali butuh dokumen, akses semua project)
   1. Buka chat
   2. Tulis prompt: "buatkan [jenis dokumen] untuk [project/klien] dengan [detail]"
-  3. Sistem: RAG retrieve context relevan → Ollama generate → mapping ke template asli
-  4. User terima dokumen jadi (downloadable, format asli: Word/PDF/Excel)
-  5. (Opsional) Chat lanjut untuk revisi → sistem update dokumen di thread yang sama
-  6. User tandai final → VDRL auto-update (REV, STS, Plan Submission Date)
-  7. Kalau mau kirim ke klien → konfirmasi tanggal kirim → VDRL auto-tambah siklus Issued baru
+     ATAU upload template sendiri + prompt apa yang harus diisi
+  3. Sistem auto-detect project dari prompt → RAG retrieve context → Ollama generate → mapping ke template asli
+  4. User terima dokumen jadi (downloadable, format asli: Word/PDF/Excel) — versi #1 tersimpan di thread
+  5. Chat lanjut untuk revisi → sistem update HANYA bagian yang diminta (versioning, bukan regenerate total) → versi #2, #3, dst
+  6. User tulis kalimat yang mengindikasikan final ("sudah final", "kirim ke klien") → sistem konfirmasi balik → jika ya: VDRL auto-update (REV, STS, Plan Submission Date)
+  7. Kalau mau kirim ke klien → user sebut tanggal kirim di chat → VDRL auto-tambah siklus Issued baru
   8. (Nanti, saat klien balas) → Admin/User input manual Returned Date/TRA/Code
+  9. Riwayat chat tersimpan permanen (kecuali dihapus user)
 ```
 
 ---
@@ -139,13 +155,21 @@ AABB=kode project, POXXX=nomor PO, CCDD=Facility, EE=System, FF=Drawing Category
 
 ---
 
-## 6. Open Questions (Baru, untuk Chat-based Workflow)
+## 6. Resolved Clarifications (Update 2026-11-02)
 
-- [ ] Bagaimana sistem tahu **chat ini untuk project/klien mana**? Opsi: (a) User pilih project dulu sebelum chat (dropdown/project selector), (b) User sebut nama klien/project di prompt dan sistem auto-detect via RAG, (c) 1 chat thread = 1 project (dibuat per-project seperti workspace)
-- [ ] **Scope akses User biasa**: semua User bisa akses semua project, atau Admin assign User ke project tertentu saja (data klien sensitif per project)?
-- [ ] Output "dokumen jadi" — perlu dipastikan: generate ulang penuh dari template tiap kali, atau ada mekanisme simpan/versioning per dokumen yang sedang dikerjakan dalam 1 thread chat?
-- [ ] Finalisasi dokumen (§2.5) — triggernya tombol UI eksplisit ("Finalize") atau cukup deteksi dari kalimat user ("ini sudah final")? Yang pertama lebih aman (tidak salah trigger), yang kedua lebih natural tapi berisiko.
-- [ ] Riwayat chat — perlu disimpan permanen per project (jadi bisa dibuka lagi kapan saja seperti riwayat chat ChatGPT), atau cukup session sekali pakai?
+| # | Pertanyaan | Jawaban User |
+|---|------------|---------------|
+| 1 | Sistem tahu chat untuk project/klien mana? | **Auto-detect dari prompt** — sistem (RAG) cocokkan konteks prompt ke knowledge base project yang relevan, tanpa dropdown/project selector manual |
+| 2 | Scope akses User biasa — semua project atau di-assign? | **Akses semua project.** Output tetap bergantung pada apa yang diinput user sendiri — termasuk kemampuan **upload template ad-hoc** langsung di chat (lihat §2.1), lalu prompt apa yang harus diisi ke template itu, sistem mapping ke template yang baru diupload. Model tetap perlu "belajar" dulu dari dataset-dataset sebelumnya (RAG knowledge base) agar akurasi tinggi |
+| 3 | Generate ulang total vs versioning per edit? | **Dijelaskan ke user** (full vs incremental — lihat penjelasan di atas §2.4). Rekomendasi: **versioning/incremental edit** (opsi B), sejalan dengan konsep REV di VDRL — diterapkan sebagai desain default kecuali user koreksi |
+| 4 | Trigger finalisasi — tombol atau deteksi kalimat? | **Deteksi dari kalimat/input user** (natural language), dengan safety net: sistem konfirmasi balik sebelum eksekusi (lihat §2.5) |
+| 5 | Riwayat chat permanen atau sekali pakai? | **Disimpan permanen**, kecuali user hapus sendiri |
+
+---
+
+## 7. Sisa Open Question (Kecil)
+
+- [ ] Template yang diupload ad-hoc oleh User biasa di chat (§2.1) — setelah dipakai, apakah otomatis masuk ke knowledge base permanen (jadi bisa dipakai user lain juga ke depannya), atau cuma berlaku untuk thread chat itu saja?
 
 ---
 
