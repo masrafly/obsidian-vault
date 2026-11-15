@@ -29,6 +29,7 @@ Peran Admin sekarang lebih ke **"melatih" sistem di belakang layar**, supaya Use
 ### 1.2 Review & Quality Control
 - Admin bisa review histori chat/output dokumen yang dihasilkan User biasa — cek akurasi, koreksi kalau ada yang salah (misal hasil retrieval kurang relevan, atau legend salah ter-parse).
 - Admin bisa update/replace knowledge base kapan saja (misal klien kirim VDRL versi baru) → sistem re-index otomatis.
+- **Termasuk review template ad-hoc yang diupload User biasa** (§2.1) — karena upload ini otomatis masuk knowledge base permanen & dipakai semua user, QC Admin jadi safety net supaya tidak ada template salah/rusak yang mencemari knowledge base bersama.
 
 ### 1.3 Kelola User
 - Admin kelola akun User biasa.
@@ -49,7 +50,7 @@ Ini perubahan paling besar dari draft sebelumnya. Alur baru:
   > *"Generate VDRL document baru untuk project Local Control Station, dokumen Technical Data Sheet"*
 - **Mode tambahan — Upload Template Ad-hoc oleh User biasa** (dikonfirmasi, bukan cuma Admin yang bisa upload template):
   > *User upload file template dokumen langsung di chat → lalu prompt apa saja yang harus diisi ke template tersebut → sistem mapping input user ke template yang baru diupload itu.*
-  - Ini beda dari jalur Admin (§1.1) yang isi knowledge base jangka panjang untuk semua user — upload ad-hoc ini sifatnya **spesifik untuk 1 kebutuhan/thread chat saat itu**, template-nya belum tentu masuk ke knowledge base permanen (perlu diputuskan — lihat §6).
+  - Template yang diupload **otomatis masuk ke knowledge base permanen** (dikonfirmasi) — bukan cuma dipakai sekali untuk thread itu saja. Tujuannya supaya sistem makin banyak "resource" rujukan dari waktu ke waktu dan akurasi makin tinggi untuk semua user, bukan cuma yang upload.
   - Supaya akurat, **model tetap harus sudah "belajar" dari dataset-dataset sebelumnya** (hasil RAG indexing dari knowledge base Admin + histori dokumen) — upload ad-hoc ini memanfaatkan kemampuan umum yang sudah terbentuk, bukan dari nol.
 
 ### 2.2 Sistem Proses (di balik layar — RAG + Ollama)
@@ -164,12 +165,7 @@ AABB=kode project, POXXX=nomor PO, CCDD=Facility, EE=System, FF=Drawing Category
 | 3 | Generate ulang total vs versioning per edit? | **Dijelaskan ke user** (full vs incremental — lihat penjelasan di atas §2.4). Rekomendasi: **versioning/incremental edit** (opsi B), sejalan dengan konsep REV di VDRL — diterapkan sebagai desain default kecuali user koreksi |
 | 4 | Trigger finalisasi — tombol atau deteksi kalimat? | **Deteksi dari kalimat/input user** (natural language), dengan safety net: sistem konfirmasi balik sebelum eksekusi (lihat §2.5) |
 | 5 | Riwayat chat permanen atau sekali pakai? | **Disimpan permanen**, kecuali user hapus sendiri |
-
----
-
-## 7. Sisa Open Question (Kecil)
-
-- [ ] Template yang diupload ad-hoc oleh User biasa di chat (§2.1) — setelah dipakai, apakah otomatis masuk ke knowledge base permanen (jadi bisa dipakai user lain juga ke depannya), atau cuma berlaku untuk thread chat itu saja?
+| 6 | Template ad-hoc dari User biasa — masuk knowledge base permanen atau cuma per-thread? | **Otomatis masuk knowledge base permanen** — supaya "otak" model makin banyak resource & akurasinya makin tinggi dari waktu ke waktu. Berlaku untuk semua user, bukan cuma thread yang upload |
 
 ---
 
